@@ -10,7 +10,6 @@ source:
 
 runtime:
   engine: onnxruntime
-  # model.onnx is fetched by `gonnxctl pull resnet50` (see assets below).
   model: ./model.onnx
   providers:
     - CUDAExecutionProvider
@@ -71,12 +70,9 @@ security:
   allowUnsigned: true
   allowedHosts: []
 
-# Assets are large binary files not committed to Git.
-# Run `gonnxctl pull resnet50` to download and verify them.
 assets:
   - id: model
-    url: https://huggingface.co/microsoft/resnet-50/resolve/main/onnx/model.onnx
-    # sha256 of the fp32 ONNX export from microsoft/resnet-50 on HuggingFace.
-    sha256: c4a2f6b82f6b8e2f2a5b1e0a3d9c7f4e8b2a1d6e9c3f5a7b0e4d8c2f1a6b3e9
-    size: 102376448
+    url: https://github.com/onnx/models/raw/main/validated/vision/classification/resnet/model/resnet50-v1-12.onnx
+    sha256: 3f03fdef724b22947eed826f1eef1dc5c34151bb4c37d634f1db89dfa2dd1526
+    size: 102576593
     dest: ./model.onnx
