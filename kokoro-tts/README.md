@@ -54,6 +54,42 @@ gonnxctl run kokoro-tts -f examples/request.json
 
 The WAV is 24000 Hz, mono, 16-bit PCM.
 
+## Saving audio
+
+The response contains a base64-encoded WAV in `audio_b64`. Use one of the
+helpers in `examples/` to save it to a file.
+
+**Shell (requires `jq` and `base64`):**
+
+```sh
+# default output: output.wav
+./examples/save_wav.sh examples/request.json
+
+# custom output filename
+./examples/save_wav.sh examples/request.json speech.wav
+```
+
+**Python (no extra deps):**
+
+```sh
+gonnxctl run kokoro-tts -f examples/request.json \
+  | python3 examples/save_wav.py output.wav
+```
+
+**One-liner with `jq`:**
+
+```sh
+gonnxctl run kokoro-tts -f examples/request.json \
+  | jq -r '.audio_b64' | base64 -d > output.wav
+```
+
+**Playback:**
+
+```sh
+aplay output.wav           # ALSA (Linux)
+ffplay -nodisp output.wav  # ffmpeg
+```
+
 ## Voices
 
 | Prefix | Language | Gender |
