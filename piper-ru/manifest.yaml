@@ -84,6 +84,15 @@ security:
   allowUnsigned: true
   allowedHosts: []
 
+# System-level dependencies that must be present on the host.
+# gonnxctl pull will emit a warning for each missing dep.
+# gonnxctl load will set the worker state to "degraded" if any are missing.
+system:
+  deps:
+    - name: espeak-ng
+      check: "espeak-ng --version"
+      hint: "apt install espeak-ng"
+
 assets:
   - id: model
     url: https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
