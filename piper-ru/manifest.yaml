@@ -1,0 +1,93 @@
+apiVersion: onnxd/v1alpha1
+kind: Model
+name: piper-ru
+version: 1.0.0
+
+source:
+  repo: https://github.com/nikita-popov/examples-gonnx.git
+  ref: master
+  dir: piper-ru
+
+runtime:
+  engine: onnxruntime
+  model: ./model.onnx
+  providers:
+    - CPUExecutionProvider
+  session:
+    interOpThreads: 1
+    intraOpThreads: 4
+    graphOptimizationLevel: all
+
+handler:
+  type: python
+  entrypoint: ./handler.py
+  callable: app
+  python:
+    requirements: ./requirements.txt
+
+interface:
+  inputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      text:
+        type: string
+        description: Russian text to synthesize.
+      speaker_id:
+        type: integer
+        minimum: 0
+        default: 0
+        description: Speaker index (for multi-speaker models).
+      length_scale:
+        type: number
+        minimum: 0.1
+        maximum: 5.0
+        default: 1.0
+        description: Speaking speed. >1 slower, <1 faster.
+      noise_scale:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        default: 0.667
+        description: Variation in pitch/energy.
+      noise_w:
+        type: number
+        minimum: 0.0
+        maximum: 1.0
+        default: 0.8
+        description: Variation in phoneme duration.
+    required: [text]
+    additionalProperties: false
+  outputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      audio_b64:
+        type: string
+        contentEncoding: base64
+        description: Base64-encoded WAV audio.
+      sample_rate:
+        type: integer
+        description: Sample rate in Hz (from model config).
+    required: [audio_b64, sample_rate]
+
+policy:
+  startupTimeoutMs: 60000
+  predictTimeoutMs: 30000
+  maxConcurrency: 4
+  idleUnloadSeconds: 900
+  network: disabled
+  filesystem:
+    mode: read-only
+
+security:
+  allowUnsigned: true
+  allowedHosts: []
+
+assets:
+  - id: model
+    url: https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
+    dest: ./model.onnx
+  - id: config
+    url: https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
+    dest: ./model.onnx.json
