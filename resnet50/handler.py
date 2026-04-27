@@ -48,11 +48,13 @@ class ResNet50Worker(ModelWorker):
     @staticmethod
     def _preprocess(image: Image.Image) -> np.ndarray:
         image = image.resize((224, 224))
-        arr = np.array(image, dtype=np.float32) / 255.0
-        mean = np.array([0.485, 0.456, 0.406])
-        std  = np.array([0.229, 0.224, 0.225])
+        # Keep float32 throughout: use np.float32 literals to avoid numpy
+        # upcasting to float64 when dividing by a Python int.
+        arr = np.array(image, dtype=np.float32) / np.float32(255.0)
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
         arr = (arr - mean) / std
-        return arr.transpose(2, 0, 1)[np.newaxis]  # NCHW
+        return arr.transpose(2, 0, 1)[np.newaxis]  # (1, 3, 224, 224) float32
 
     @staticmethod
     def _softmax(x: np.ndarray) -> np.ndarray:
