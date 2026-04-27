@@ -1,0 +1,91 @@
+apiVersion: onnxd/v1alpha1
+kind: Model
+name: silero-ru
+version: 1.0.0
+
+source:
+  repo: https://github.com/nikita-popov/examples-gonnx.git
+  ref: master
+  dir: silero-ru
+
+# engine: torch — model is a TorchScript package (.pt).
+# The handler loads it with torch.jit.load(); onnxruntime is not used.
+# This is intentional: Silero TTS does not publish an ONNX export.
+runtime:
+  engine: torch
+  model: ./model.pt
+  providers:
+    - cpu
+
+handler:
+  type: python
+  entrypoint: ./handler.py
+  callable: app
+  python:
+    requirements: ./requirements.txt
+
+interface:
+  inputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      text:
+        type: string
+        description: Russian text to synthesize.
+        minLength: 1
+        maxLength: 2048
+      speaker:
+        type: string
+        description: |
+          Speaker ID. Available voices: aidar, baya, kseniya, xenia, eugene, random.
+        default: xenia
+      sample_rate:
+        type: integer
+        description: Output sample rate in Hz.
+        enum: [8000, 24000, 48000]
+        default: 24000
+      put_accent:
+        type: boolean
+        description: Automatically place stress marks.
+        default: true
+      put_yo:
+        type: boolean
+        description: Replace 'е' with 'ё' where appropriate.
+        default: true
+    required: [text]
+    additionalProperties: false
+  outputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      audio_b64:
+        type: string
+        contentEncoding: base64
+        description: Base64-encoded WAV file.
+      sample_rate:
+        type: integer
+        description: Sample rate of the output audio in Hz.
+      speaker:
+        type: string
+        description: Speaker used for synthesis.
+    required: [audio_b64, sample_rate, speaker]
+
+policy:
+  startupTimeoutMs: 60000
+  predictTimeoutMs: 30000
+  maxConcurrency: 2
+  idleUnloadSeconds: 900
+  network: disabled
+  filesystem:
+    mode: read-only
+
+security:
+  allowUnsigned: true
+  allowedHosts: []
+
+assets:
+  - id: model
+    url: https://models.silero.ai/models/tts/ru/v4_ru.pt
+    sha256: 896ab96347d5bd781ab97959d4fd6885620e5aab52405d3445626eb7c1414b00
+    size: 40107184
+    dest: ./model.pt
