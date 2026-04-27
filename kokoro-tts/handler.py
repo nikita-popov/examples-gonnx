@@ -9,10 +9,11 @@ Expects:
 
 Place both files next to manifest.yaml before installing the bundle.
 
-Output: WAV base64, 24000 Hz, mono, float32 PCM.
+Output: WAV base64, 24000 Hz, mono, 16-bit PCM.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import wave
@@ -21,7 +22,7 @@ import numpy as np
 
 from gonnx import ModelWorker, Request, WorkerContext
 
-# Maps first character of voice prefix to (lang_tag, misaki_lang)
+# Maps first character of voice prefix to BCP-47 language tag
 _VOICE_LANG_MAP: dict[str, str] = {
     "a": "en-us",
     "b": "en-gb",
@@ -38,12 +39,11 @@ _SAMPLE_RATE = 24_000
 
 
 def _lang_from_voice(voice: str) -> str:
-    """Derive BCP-47 language tag from voice prefix."""
     return _VOICE_LANG_MAP.get(voice[0], "en-us")
 
 
 def _audio_to_wav_b64(audio: np.ndarray, sample_rate: int = _SAMPLE_RATE) -> str:
-    """Convert float32 numpy array [-1, 1] to base64-encoded WAV bytes."""
+    """Convert float32 numpy array [-1, 1] to base64-encoded 16-bit WAV."""
     pcm = np.clip(audio, -1.0, 1.0)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wf:
@@ -67,15 +67,18 @@ class KokoroWorker(ModelWorker):
         lang: str = req.json.get("lang") or _lang_from_voice(voice)
         speed: float = float(req.json.get("speed", 1.0))
 
-        # kokoro_onnx returns a generator of (samples, sample_rate) chunks
-        chunks: list[np.ndarray] = []
-        for samples, sr in self.kokoro.create_stream(text, voice=voice, lang=lang, speed=speed):
-            chunks.append(samples)
+        # create_stream() is an async generator — must be consumed with asyncio.
+        async def _collect() -> list[np.ndarray]:
+            chunks: list[np.ndarray] = []
+            async for samples, _sr in self.kokoro.create_stream(
+                text, voice=voice, lang=lang, speed=speed
+            ):
+                chunks.append(samples)
+            return chunks
 
-        if not chunks:
-            audio = np.zeros(0, dtype=np.float32)
-        else:
-            audio = np.concatenate(chunks)
+        chunks = asyncio.run(_collect())
+
+        audio = np.concatenate(chunks) if chunks else np.zeros(0, dtype=np.float32)
 
         return {
             "audio_b64": _audio_to_wav_b64(audio),
