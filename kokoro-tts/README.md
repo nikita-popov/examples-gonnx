@@ -1,103 +1,80 @@
 # kokoro-tts
 
-Gonnx bundle for **Kokoro TTS v1.0** — a lightweight 82 M-parameter
-text-to-speech model that runs fully on CPU via ONNX Runtime.
+Text-to-speech in 9 languages using [Kokoro-82M](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX) ONNX.
 
-## Supported languages
+## Assets
 
-| Voice prefix | Language | Voices |
-|---|---|---|
-| `af_*` / `am_*` | English US (female/male) | `af_heart`, `af_bella`, `am_adam`, … |
-| `bf_*` / `bm_*` | English GB (female/male) | `bf_emma`, `bm_george`, … |
-| `jf_*` / `jm_*` | Japanese | `jf_alpha`, `jm_omega`, … |
-| `zf_*` / `zm_*` | Chinese | `zf_xiaobei`, … |
-| `ef_*` / `em_*` | Spanish | — |
-| `ff_*` | French | — |
-| `hf_*` / `hm_*` | Hindi | — |
-| `if_*` | Italian | — |
-| `pf_*` / `pm_*` | Portuguese | — |
+This bundle uses two assets declared in `manifest.yaml`:
 
-## Model files (not in repo — too large for Git)
+| Asset ID | File | Size | Source |
+|----------|------|------|--------|
+| `model` | `model.onnx` | ~330 MB | [onnx-community/Kokoro-82M-v1.0-ONNX](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX) |
+| `voices` | `voices.bin` | ~27 MB | same HF repo, `voices/voices-v1.0.bin` |
 
-Download from [onnx-community/Kokoro-82M-v1.0-ONNX](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX)
-and place next to `manifest.yaml`:
+Neither file is committed to Git. Fetch both with:
 
-```
-kokoro-tts/
-├── model.onnx          # onnx/model.onnx  (~325 MB fp32)  or
-│                       # onnx/model_quantized.onnx  (~82 MB int8)
-└── voices.bin          # voices/voices-v1.0.bin
+```sh
+gonnxctl pull kokoro-tts
 ```
 
-```bash
-# Quick download with huggingface-cli
-pip install huggingface_hub
-huggingface-cli download onnx-community/Kokoro-82M-v1.0-ONNX \
-    onnx/model_quantized.onnx \
-    voices/voices-v1.0.bin \
-    --local-dir /path/to/kokoro-tts
+`gonnxctl pull` verifies the sha256 of each file after download. If a file is
+already present with the correct hash it is skipped.
 
-mv /path/to/kokoro-tts/onnx/model_quantized.onnx /path/to/kokoro-tts/model.onnx
-mv /path/to/kokoro-tts/voices/voices-v1.0.bin    /path/to/kokoro-tts/voices.bin
-```
+## Install and run
 
-## Install & run
-
-```bash
-# Install bundle from Git
+```sh
 gonnxctl install https://github.com/nikita-popov/examples-gonnx.git --dir kokoro-tts
-
-# Load model into daemon
+gonnxctl pull kokoro-tts
 gonnxctl load kokoro-tts
-
-# Synthesize
-curl -s -X POST http://localhost:8080/v1/models/kokoro-tts/predict \
-  -H 'Content-Type: application/json' \
-  -d @examples/request.json \
-  | jq -r .audio_b64 | base64 -d > output.wav
-
-aplay output.wav
+gonnxctl run kokoro-tts -f examples/request.json
 ```
 
-## Input / Output
+## Request format
 
-**Request:**
 ```json
 {
-  "text": "Hello world",
+  "text": "Hello, world!",
   "voice": "af_heart",
-  "lang": "en-us",
   "speed": 1.0
 }
 ```
-- `lang` is optional — auto-detected from voice prefix.
 
-**Response:**
+`lang` is optional — auto-detected from the voice prefix if omitted.
+
+## Response format
+
 ```json
 {
-  "audio_b64": "<base64-encoded WAV>",
+  "audio_b64": "<base64 WAV>",
   "sample_rate": 24000,
   "voice": "af_heart",
   "lang": "en-us"
 }
 ```
-Output is a 16-bit PCM WAV, 24000 Hz, mono.
 
-## G2P extras
+The WAV is 24000 Hz, mono, 16-bit PCM.
 
-For non-English languages install the corresponding misaki extra:
+## Voices
 
-```bash
-pip install 'misaki[ja]'   # Japanese
-pip install 'misaki[zh]'   # Chinese
-# For ES/FR/HI/IT/PT also install system package:
-apt install espeak-ng
-pip install 'misaki[es,fr,hi,it,pt]'
-```
+| Prefix | Language | Gender |
+|--------|----------|--------|
+| `af_*` | English US | Female |
+| `am_*` | English US | Male |
+| `bf_*` | English GB | Female |
+| `bm_*` | English GB | Male |
+| `jf_*`, `jm_*` | Japanese | F / M |
+| `zf_*`, `zm_*` | Chinese | F / M |
+| `ef_*`, `em_*` | Spanish | F / M |
+| `ff_*` | French | Female |
+| `hf_*`, `hm_*` | Hindi | F / M |
+| `if_*` | Italian | Female |
+| `pf_*`, `pm_*` | Portuguese | F / M |
+
+Default voice: `af_heart`.
 
 ## Notes
 
-- `maxConcurrency: 1` — ONNX Runtime sessions are not thread-safe without
-  re-entrant sessions; increase only if you wrap with a session pool.
-- `idleUnloadSeconds: 1800` — model is unloaded after 30 min of inactivity
-  to free ~325 MB (fp32) or ~82 MB (int8 quantized) of RAM.
+- `maxConcurrency: 1` — Kokoro is not thread-safe; requests are serialised.
+- `network: disabled` — the worker has no egress; all data is local after `pull`.
+- The handler produces 16-bit PCM WAV regardless of ONNX Runtime's internal
+  float32 output, for maximum client compatibility.

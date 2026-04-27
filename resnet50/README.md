@@ -1,32 +1,31 @@
 # resnet50
 
-Image classification bundle for [gonnx](https://github.com/nikita-popov/gonnx).
+ImageNet-1k image classification using ResNet-50 ONNX.
 
-Classifies an input image into one of the **ImageNet-1k** classes using a ResNet-50 ONNX model.
+## Assets
 
-## Install
+This bundle uses one asset declared in `manifest.yaml`:
+
+| Asset ID | File | Size | Source |
+|----------|------|------|--------|
+| `model` | `model.onnx` | ~102 MB | [microsoft/resnet-50](https://huggingface.co/microsoft/resnet-50) on HuggingFace |
+
+The file is **not committed to Git**. Fetch it with:
+
+```sh
+gonnxctl pull resnet50
+```
+
+## Install and run
 
 ```sh
 gonnxctl install https://github.com/nikita-popov/examples-gonnx.git --dir resnet50
+gonnxctl pull resnet50
+gonnxctl load resnet50
+gonnxctl run resnet50 -f examples/request.json
 ```
 
-## Model
-
-Export a ResNet-50 from torchvision and place it at `model.onnx` inside the bundle directory:
-
-```python
-import torch, torchvision
-model = torchvision.models.resnet50(weights="IMAGENET1K_V2")
-model.eval()
-dummy = torch.randn(1, 3, 224, 224)
-torch.onnx.export(model, dummy, "model.onnx",
-                  input_names=["input"], output_names=["output"],
-                  dynamic_axes={"input": {0: "batch"}})
-```
-
-Then replace `assets/labels.txt` with the full ImageNet-1k label list (1000 lines).
-
-## Input
+## Request format
 
 ```json
 {
@@ -35,23 +34,25 @@ Then replace `assets/labels.txt` with the full ImageNet-1k label list (1000 line
 }
 ```
 
-## Output
+## Response format
 
 ```json
 {
   "classes": [
-    {"label": "golden retriever", "score": 0.823},
-    {"label": "Labrador retriever", "score": 0.091}
+    { "label": "tiger cat", "score": 0.412 },
+    { "label": "tabby",     "score": 0.231 }
   ]
 }
 ```
 
-## Quick run
+## Preprocessing
 
-```sh
-# encode a local image and run inference
-base64 -w0 cat.jpg | python3 -c "
-import sys, json
-print(json.dumps({'image': sys.stdin.read(), 'top_k': 3}))
-" | gonnxctl run resnet50
-```
+The handler resizes the image to 224×224, normalises with ImageNet mean/std
+`([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])`, and runs the ONNX session.
+Labels are loaded from `assets/labels.txt` (committed in Git — it is a small
+text file, not an asset).
+
+## Provider fallback
+
+The manifest lists `CUDAExecutionProvider` first. ONNX Runtime falls back to
+`CPUExecutionProvider` automatically if no CUDA device is available.

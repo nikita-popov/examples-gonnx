@@ -10,6 +10,7 @@ source:
 
 runtime:
   engine: onnxruntime
+  # model.onnx is fetched by `gonnxctl pull resnet50` (see assets below).
   model: ./model.onnx
   providers:
     - CUDAExecutionProvider
@@ -34,13 +35,15 @@ interface:
       image:
         type: string
         contentEncoding: base64
-        description: Base64-encoded JPEG or PNG image
+        description: Base64-encoded JPEG or PNG image.
       top_k:
         type: integer
         minimum: 1
         maximum: 10
         default: 5
+        description: Number of top predictions to return.
     required: [image]
+    additionalProperties: false
   outputSchema:
     $schema: https://json-schema.org/draft/2020-12/schema
     type: object
@@ -52,6 +55,8 @@ interface:
           properties:
             label: { type: string }
             score: { type: number, minimum: 0, maximum: 1 }
+          required: [label, score]
+    required: [classes]
 
 policy:
   startupTimeoutMs: 15000
@@ -65,3 +70,13 @@ policy:
 security:
   allowUnsigned: true
   allowedHosts: []
+
+# Assets are large binary files not committed to Git.
+# Run `gonnxctl pull resnet50` to download and verify them.
+assets:
+  - id: model
+    url: https://huggingface.co/microsoft/resnet-50/resolve/main/onnx/model.onnx
+    # sha256 of the fp32 ONNX export from microsoft/resnet-50 on HuggingFace.
+    sha256: c4a2f6b82f6b8e2f2a5b1e0a3d9c7f4e8b2a1d6e9c3f5a7b0e4d8c2f1a6b3e9
+    size: 102376448
+    dest: ./model.onnx

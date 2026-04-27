@@ -1,0 +1,5 @@
+# Asset files fetched by `gonnxctl pull kokoro-tts`.
+# These are large binaries declared in manifest.yaml assets[] and must not be
+# committed to Git. Use `gonnxctl pull` to download them locally.
+model.onnx
+voices.bin

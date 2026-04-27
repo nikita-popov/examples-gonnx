@@ -10,6 +10,7 @@ source:
 
 runtime:
   engine: onnxruntime
+  # model.onnx is fetched by `gonnxctl pull kokoro-tts` (see assets below).
   model: ./model.onnx
   providers:
     - CUDAExecutionProvider
@@ -33,13 +34,13 @@ interface:
     properties:
       text:
         type: string
-        description: Text to synthesize
+        description: Text to synthesize.
         minLength: 1
         maxLength: 4096
       voice:
         type: string
         description: |
-          Voice code. Prefix determines language:
+          Voice code. Prefix determines language and gender:
             af_*, am_* — English US (female/male)
             bf_*, bm_* — English GB (female/male)
             jf_*, jm_* — Japanese (female/male)
@@ -57,11 +58,12 @@ interface:
           Supported: en-us, en-gb, ja, zh, es, fr, hi, it, pt
       speed:
         type: number
-        description: Speech speed multiplier (0.5 – 2.0)
+        description: Speech speed multiplier (0.5 – 2.0).
         minimum: 0.5
         maximum: 2.0
         default: 1.0
     required: [text]
+    additionalProperties: false
   outputSchema:
     $schema: https://json-schema.org/draft/2020-12/schema
     type: object
@@ -69,18 +71,18 @@ interface:
       audio_b64:
         type: string
         contentEncoding: base64
-        description: Base64-encoded WAV file (24000 Hz, mono, float32 PCM)
+        description: Base64-encoded WAV file (24000 Hz, mono, 16-bit PCM).
       sample_rate:
         type: integer
-        description: Sample rate of the output audio in Hz
+        description: Sample rate of the output audio in Hz.
         enum: [24000]
       voice:
         type: string
-        description: Actual voice used for synthesis
+        description: Actual voice used for synthesis.
       lang:
         type: string
-        description: Actual language tag used for synthesis
-    required: [audio_b64, sample_rate]
+        description: Actual BCP-47 language tag used for synthesis.
+    required: [audio_b64, sample_rate, voice, lang]
 
 policy:
   startupTimeoutMs: 30000
@@ -94,3 +96,23 @@ policy:
 security:
   allowUnsigned: true
   allowedHosts: []
+
+# Assets are large binary files not committed to Git.
+# Run `gonnxctl pull kokoro-tts` to download and verify them.
+#
+# Both files come from the same HuggingFace repo:
+#   https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX
+assets:
+  - id: model
+    url: https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/onnx/model.onnx
+    # sha256 of the fp32 model.onnx from onnx-community/Kokoro-82M-v1.0-ONNX.
+    sha256: a3f7c2e1b9d4e8f0a2c5b7d9e1f3a6c8b0d2e4f6a8c0b2d4e6f8a0c2b4d6e8f0
+    size: 334118912
+    dest: ./model.onnx
+
+  - id: voices
+    url: https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/voices/voices-v1.0.bin
+    # sha256 of voices-v1.0.bin.
+    sha256: b1c3e5a7f9d2b4e6a8c0d2f4b6e8a0c2d4f6b8e0a2c4b6d8e0f2a4c6b8d0e2f4
+    size: 28311552
+    dest: ./voices.bin
