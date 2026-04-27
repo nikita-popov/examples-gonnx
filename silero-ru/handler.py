@@ -1,7 +1,14 @@
 """Silero TTS Russian handler for gonnx.
 
-Uses the Silero v4 TorchScript model (.pt) loaded via torch.jit.load().
-No ONNX runtime is involved — engine: torch in the manifest is intentional.
+Uses the Silero v4 torch.package model (.pt) loaded via
+torch.package.PackageImporter. The archive layout is:
+
+    v4_ru/.data/version
+    v4_ru/multi_acc_v3_package.py
+    v4_ru/tts_models/model
+
+Note: torch.jit.load() does NOT work with this format — it expects
+      archive/constants.pkl which is absent in torch.package archives.
 
 Silero does not publish an ONNX export for TTS; this bundle demonstrates
 that gonnx handlers are not limited to onnxruntime and can wrap any
@@ -27,8 +34,10 @@ _SAMPLE_RATES = {8000, 24000, 48000}
 
 class SileroWorker(ModelWorker):
     def load(self, ctx: WorkerContext) -> None:
-        # ctx.model_path = GONNX_MODEL_PATH env var (absolute path to model.pt)
-        self._model = torch.jit.load(ctx.model_path, map_location=torch.device("cpu"))
+        # Silero v4_ru is a torch.package archive, not a legacy TorchScript.
+        # PackageImporter understands the v4_ru/tts_models/model layout.
+        imp = torch.package.PackageImporter(ctx.model_path)
+        self._model = imp.load_pickle("tts_models", "model")
         self._model.eval()
 
     def predict(self, req: Request) -> dict:
