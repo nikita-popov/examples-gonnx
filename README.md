@@ -32,6 +32,11 @@ Replace `resnet50` with any bundle name from the table below.
 | [resnet50](./resnet50) | Image classification (ImageNet-1k) | ResNet-50 ONNX (fp32, ~100 MB) | `model.onnx` | — |
 | [kokoro-tts](./kokoro-tts) | Text-to-speech (9 languages) | Kokoro-82M ONNX (~330 MB) | `model.onnx`, `voices.bin`, `config.json` | `espeak-ng` |
 | [piper-ru](./piper-ru) | Text-to-speech (Russian) | Piper Irina medium ONNX (~60 MB) | `model.onnx`, `model.onnx.json` | `espeak-ng` |
+| [silero-ru](./silero-ru) | Text-to-speech (Russian, 5 speakers) | Silero v4 TorchScript (~38 MB) | `model.pt` | — |
+
+> **silero-ru** uses `engine: torch` and loads the model via `torch.jit.load()`.
+> This demonstrates that gonnx handlers are not limited to ONNX backends —
+> any Python inference library can be wrapped in a handler.
 
 ## How assets work
 
