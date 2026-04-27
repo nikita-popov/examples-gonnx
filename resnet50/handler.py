@@ -21,6 +21,9 @@ class ResNet50Worker(ModelWorker):
             ctx.model_path,
             providers=ctx.providers,
         )
+        # Read the actual input name from the model instead of hardcoding it.
+        # torchvision export uses 'input', ONNX Model Zoo uses 'data'.
+        self._input_name = self.sess.get_inputs()[0].name
         with open(ctx.asset("assets/labels.txt")) as f:
             self.labels = [line.strip() for line in f]
 
@@ -31,7 +34,7 @@ class ResNet50Worker(ModelWorker):
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         tensor = self._preprocess(image)
 
-        (logits,) = self.sess.run(None, {"input": tensor})
+        (logits,) = self.sess.run(None, {self._input_name: tensor})
         probs = self._softmax(logits[0])
 
         top_idx = np.argsort(probs)[::-1][:top_k]
