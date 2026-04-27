@@ -87,7 +87,9 @@ security:
 assets:
   - id: model
     url: https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx
+    sha256: 8ff38212d23da300bbe3705c645e6e5b9475f0bfde01558eb17813e22acaaaaa
     dest: ./model.onnx
   - id: config
     url: https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json
+    sha256: c2ec28bb38e2b59e93b959b3e40348c1afebbd272f30fed5d41205d08e98a9d7
     dest: ./model.onnx.json
