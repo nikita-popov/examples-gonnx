@@ -76,3 +76,6 @@ assets:
     sha256: 3f03fdef724b22947eed826f1eef1dc5c34151bb4c37d634f1db89dfa2dd1526
     size: 102576593
     dest: ./model.onnx
+  - id: labels
+    url: https://raw.githubusercontent.com/onnx/models/main/validated/vision/classification/synset.txt
+    dest: ./assets/labels.txt

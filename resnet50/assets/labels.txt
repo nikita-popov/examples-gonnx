@@ -1,4 +1,3 @@
-# ImageNet-1k labels — replace with real labels file
-tench
-goldfish
-great white shark
+# This file is downloaded at pull time from the ONNX model zoo.
+# See the 'labels' asset entry in manifest.yaml.
+# Do not edit manually.
