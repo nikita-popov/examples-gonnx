@@ -1,0 +1,11 @@
+# Core TTS engine
+kokoro-onnx==0.4.5
+
+# G2P backends — install extras for non-English languages
+# misaki[ja]   for Japanese
+# misaki[zh]   for Chinese
+# misaki[es,fr,hi,it,pt]  requires espeak-ng system package
+misaki>=0.8.0
+
+# Numerical
+numpy>=1.24

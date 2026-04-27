@@ -1,0 +1,96 @@
+apiVersion: onnxd/v1alpha1
+kind: Model
+name: kokoro-tts
+version: 1.0.0
+
+source:
+  repo: https://github.com/nikita-popov/examples-gonnx.git
+  ref: master
+  dir: kokoro-tts
+
+runtime:
+  engine: onnxruntime
+  model: ./model.onnx
+  providers:
+    - CUDAExecutionProvider
+    - CPUExecutionProvider
+  session:
+    interOpThreads: 1
+    intraOpThreads: 4
+    graphOptimizationLevel: all
+
+handler:
+  type: python
+  entrypoint: ./handler.py
+  callable: app
+  python:
+    requirements: ./requirements.txt
+
+interface:
+  inputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      text:
+        type: string
+        description: Text to synthesize
+        minLength: 1
+        maxLength: 4096
+      voice:
+        type: string
+        description: |
+          Voice code. Prefix determines language:
+            af_*, am_* — English US (female/male)
+            bf_*, bm_* — English GB (female/male)
+            jf_*, jm_* — Japanese (female/male)
+            zf_*, zm_* — Chinese (female/male)
+            ef_*, em_* — Spanish (female/male)
+            ff_*       — French (female)
+            hf_*, hm_* — Hindi (female/male)
+            if_*       — Italian (female)
+            pf_*, pm_* — Portuguese (female/male)
+        default: af_heart
+      lang:
+        type: string
+        description: |
+          BCP-47 language tag. Auto-detected from voice prefix if omitted.
+          Supported: en-us, en-gb, ja, zh, es, fr, hi, it, pt
+      speed:
+        type: number
+        description: Speech speed multiplier (0.5 – 2.0)
+        minimum: 0.5
+        maximum: 2.0
+        default: 1.0
+    required: [text]
+  outputSchema:
+    $schema: https://json-schema.org/draft/2020-12/schema
+    type: object
+    properties:
+      audio_b64:
+        type: string
+        contentEncoding: base64
+        description: Base64-encoded WAV file (24000 Hz, mono, float32 PCM)
+      sample_rate:
+        type: integer
+        description: Sample rate of the output audio in Hz
+        enum: [24000]
+      voice:
+        type: string
+        description: Actual voice used for synthesis
+      lang:
+        type: string
+        description: Actual language tag used for synthesis
+    required: [audio_b64, sample_rate]
+
+policy:
+  startupTimeoutMs: 30000
+  predictTimeoutMs: 60000
+  maxConcurrency: 1
+  idleUnloadSeconds: 1800
+  network: disabled
+  filesystem:
+    mode: read-only
+
+security:
+  allowUnsigned: true
+  allowedHosts: []
