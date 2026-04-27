@@ -10,6 +10,9 @@ torch.package.PackageImporter. The archive layout is:
 Note: torch.jit.load() does NOT work with this format — it expects
       archive/constants.pkl which is absent in torch.package archives.
 
+Note: TTSModelMultiAcc_v3 is not an nn.Module subclass, so .eval() must
+      not be called on it.
+
 Silero does not publish an ONNX export for TTS; this bundle demonstrates
 that gonnx handlers are not limited to onnxruntime and can wrap any
 Python inference backend.
@@ -36,9 +39,9 @@ class SileroWorker(ModelWorker):
     def load(self, ctx: WorkerContext) -> None:
         # Silero v4_ru is a torch.package archive, not a legacy TorchScript.
         # PackageImporter understands the v4_ru/tts_models/model layout.
+        # TTSModelMultiAcc_v3 is not an nn.Module — do not call .eval().
         imp = torch.package.PackageImporter(ctx.model_path)
         self._model = imp.load_pickle("tts_models", "model")
-        self._model.eval()
 
     def predict(self, req: Request) -> dict:
         text: str = req.json["text"]
