@@ -85,7 +85,7 @@ interface:
     required: [audio_b64, sample_rate, voice, lang]
 
 policy:
-  startupTimeoutMs: 30000
+  startupTimeoutMs: 120000   # TTS: 325 MB model load on CPU takes 60-120s
   predictTimeoutMs: 60000
   maxConcurrency: 1
   idleUnloadSeconds: 1800
